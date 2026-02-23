@@ -2,7 +2,8 @@ from pydantic import BaseModel
 
 
 class StoreResponse(BaseModel):
-    document_id: str
-    file_type:str
-    page_count: int
-    chunks: list[str]
+    file_name: str
+    file_type: str
+    job_id: str
+    stage: str
+    status: str

@@ -1,4 +1,3 @@
-import { ConnectionTable } from "@/db/schemas/connections";
 import { getGoogleDriveAuthorization, readGoogleDriveFiles } from "./googleDrive";
 import { FileContent } from "..";
 import { TQueue } from "@/workers/queues/jobs/processFiles.job";
@@ -11,8 +10,10 @@ import { readAWSFiles } from "./aws";
 import { databaseDrizzle } from "@/db";
 import { calculateRemainingPages, Plans } from "@/lib/Plans";
 import { shortId } from "@/lib/utils";
+import { ConnectionTable } from "@/db/schema";
 
 export const getConnectionToken = async (connection: ConnectionTable) => {
+
   switch (connection.service) {
     case "GOOGLE_DRIVE":
       const oauthClient = await getGoogleDriveAuthorization(connection.credentials, connection.id)

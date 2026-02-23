@@ -1,5 +1,4 @@
 import { databaseDrizzle } from "@/db";
-import { connections } from "@/db/schemas/connections";
 import { auth } from "@googleapis/oauth2";
 import { z } from "zod"
 import { FileContent, PageContent } from "..";
@@ -9,6 +8,7 @@ import { publishProgress } from "@/events";
 import { processPdfBuffer } from "../Files/pdf";
 import { eq } from "drizzle-orm";
 import { processDirectText } from "../Files/text";
+import { connections } from "@/db/schema";
 
 const googleDriveCredentials = z.object({
   accessToken: z.string().min(5),
@@ -178,6 +178,6 @@ async function processBuffer(
 }
 
 async function streamToBlob(stream: Readable): Promise<Blob> {
-  const buffer = await streamToBuffer(stream);  // Convert stream to buffer
-  return new Blob([buffer]);  // Convert buffer to Blob
+  const buffer = await streamToBuffer(stream);
+  return new Blob([buffer as BlobPart]);
 }

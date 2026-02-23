@@ -4,10 +4,9 @@ import requests
 import hashlib
 from typing import Optional
 from fastapi import File, Form, HTTPException, UploadFile, status
-from src.common.utils import document_exists, parse_metadata
-from src.layers.data_extractor.extractor.json import extract_data_json
-from src.store import service
-from src.store.controllers.utils import assert_json
+from src.common.utils import parse_metadata
+from src.infra.qdrant_client import document_exists
+from src.store.controllers.utils import assert_json, create_process_job
 
 
 async def upload(
@@ -15,7 +14,8 @@ async def upload(
     metadata: Optional[str] = Form(..., description="Metadata for chunks (JSON)"),
 ):
     meta = parse_metadata(metadata)
-    meta["_source_file"] = upload.filename
+    filename =  upload.filename or "unknown.json"
+    meta["_source_file"] = filename
 
     data_bytes = await upload.read()
     assert_json(data_bytes)
@@ -37,7 +37,7 @@ async def upload(
             detail="Document already uploaded",
         )
 
-    return service.handle(data_bytes, meta, extract_data_json)
+    return create_process_job(data_bytes, meta, user_id, filename)
 
 
 def with_url(
@@ -56,7 +56,7 @@ def with_url(
 
     data_bytes = resp.content
     assert_json(data_bytes)
-   
+
     parsed = urlparse(url)
     filename = os.path.basename(parsed.path) or "unknown.json"
 
@@ -80,4 +80,4 @@ def with_url(
             detail="Document already uploaded",
         )
 
-    return service.handle(data_bytes, meta, extract_data_json)
+    return create_process_job(data_bytes, meta, user_id, filename)

@@ -17,7 +17,7 @@ export const fromErrorToFormState = (error: unknown): FormState => {
   if (error instanceof ZodError) {
     return {
       ...EMPTY_FORM_STATE,
-      message: error.errors[0].message,
+      message: error.message,
       status: 'ERROR'
     };
     // if another error instance, return error message

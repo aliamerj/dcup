@@ -2,6 +2,7 @@ import re
 import uuid
 from typing import List
 
+from src.infra.redis_client import update_progress
 from src.layers.data_extractor.models import Line, Page, TablePage
 from src.layers.structure_analyzer.models import Paragraph, Section, StructuredDocument
 
@@ -9,7 +10,7 @@ from src.layers.structure_analyzer.models import Paragraph, Section, StructuredD
 # ==========================================================
 # PUBLIC API
 # ==========================================================
-def analyze_layout(pages: List[Page]) -> StructuredDocument:
+def analyze_layout(pages: List[Page], job_id: str) -> StructuredDocument:
 
     document = StructuredDocument()
     stack: List[Section] = []
@@ -19,14 +20,20 @@ def analyze_layout(pages: List[Page]) -> StructuredDocument:
 
     font_tiers = _compute_font_tiers(pages)
 
-    for page in pages:
+    for page_number, page in enumerate(pages, start=1):
+        update_progress(
+            job_id=job_id,
+            status="running",
+            stage="analyzing",
+            current=page_number,
+            total=len(pages),
+        )
         # ---- normalize reading order ----
         page_lines = _normalize_reading_order(page.lines)
 
         # ---- detect columns ----
         columns = _cluster_columns(page_lines)
 
-   
         for column_lines in columns:
             text_blocks = _build_blocks(column_lines)
             layout_stream = _merge_layout_blocks(text_blocks, page.tables)
@@ -48,7 +55,7 @@ def analyze_layout(pages: List[Page]) -> StructuredDocument:
                         level=heading_level,
                         page_number=page.page_number,
                         confidence=confidence,
-                        content_stream=[]
+                        content_stream=[],
                     )
 
                     while stack and stack[-1].level >= heading_level:
@@ -278,12 +285,10 @@ class TableBlock:
     def __init__(self, table: TablePage):
         self.table = table
         self.top = table.top
-        self.x0 = table.x0    
+        self.x0 = table.x0
 
-def _merge_layout_blocks(
-    text_blocks: List[Block],
-    tables: List[TablePage]
-):
+
+def _merge_layout_blocks(text_blocks: List[Block], tables: List[TablePage]):
 
     layout_items = []
 
@@ -293,4 +298,4 @@ def _merge_layout_blocks(
     for t in tables:
         layout_items.append(("table", TableBlock(t)))
 
-    return sorted(layout_items, key=lambda x: (round(x[1].top, 1), x[1].x0))             
+    return sorted(layout_items, key=lambda x: (round(x[1].top, 1), x[1].x0))

@@ -24,6 +24,7 @@ import {
 import { setConnectionConfig } from "@/actions/connctions/set"
 import { ChangeEvent, Dispatch, SetStateAction, useMemo, useRef, useState, useTransition } from "react"
 import { ConnectionQuery } from "@/app/(protected)/connections/page"
+import { SUPPORTEDFILES } from "@/lib/utils"
 
 type TFileForm = {
   setOpen: Dispatch<SetStateAction<boolean>>;
@@ -32,7 +33,6 @@ type TFileForm = {
 
 export const UploadFileForm = ({ setOpen, connection }: TFileForm) => {
   const [links, setLinks] = useState<string[]>([]);
-  const [text, setText] = useState<string>("")
   const [files, setFiles] = useState<File[]>([]);
   const [removedFiles, setRemovedFiles] = useState<string[]>([]);
   const [pending, startTransition] = useTransition();
@@ -46,9 +46,6 @@ export const UploadFileForm = ({ setOpen, connection }: TFileForm) => {
           data.set("service", "DIRECT_UPLOAD_UPDATE");
           data.set("connectionId", connection.id)
           removedFiles.forEach((fileName) => data.append("removedFiles", fileName));
-        } else {
-          data.set("service", "DIRECT_UPLOAD");
-          if (text) data.append("texts", text)
         }
         const res = await setConnectionConfig(EMPTY_FORM_STATE, data)
         if (res.status === "SUCCESS") {
@@ -73,9 +70,9 @@ export const UploadFileForm = ({ setOpen, connection }: TFileForm) => {
   };
 
   return (
-    <form action={handleUploadFiles}>
-      <div className="grid w-full max-w-sm items-center gap-1.5 pb-2">
-        <Label htmlFor="identifier">Upload Name</Label>
+    <form action={handleUploadFiles} className="flex-col gap-5">
+      <div className="gap-2 pb-3">
+        <Label className="block text-sm font-medium">Upload Name</Label>
         <Input
           id="identifier"
           name="identifier"
@@ -84,26 +81,14 @@ export const UploadFileForm = ({ setOpen, connection }: TFileForm) => {
         />
       </div>
 
-      <div>
+      <div className="gap-2 pb-3">
         <label className="block text-sm font-medium">Metadata (JSON)</label>
         <Textarea
           id="metadata"
           name="metadata"
           placeholder='{"company": "dcup"}'
           defaultValue={connection?.metadata ?? ""}
-          className="max-h-10"
-        />
-      </div>
-
-      <div className="py-3">
-        <label className="block text-sm font-medium">Page Limit</label>
-        <Input
-          type="number"
-          name="pageLimit"
-          id="pageLimit"
-          placeholder="Enter page limit"
-          disabled={!!connection}
-          defaultValue={connection ? connection.files.reduce((sum, file) => sum + file.totalPages, 0) : ""}
+          className="max-h-32 min-h-32"
         />
       </div>
 
@@ -111,7 +96,6 @@ export const UploadFileForm = ({ setOpen, connection }: TFileForm) => {
         <DataInput
           files={files}
           setFiles={setFiles}
-          setText={setText}
           links={links}
           setLinks={setLinks}
           currentFiles={connection ? connection.files.map(f => f.name) : []}
@@ -120,8 +104,8 @@ export const UploadFileForm = ({ setOpen, connection }: TFileForm) => {
         />
       </div>
 
-      <DialogFooter>
-        <Button disabled={pending} type="submit" data-test="btn-upload" >
+      <DialogFooter className="gap-3 pt-2">
+        <Button className="p-5" disabled={pending} type="submit" data-test="btn-upload" >
           {pending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -142,13 +126,12 @@ type TDataInput = {
   setFiles: Dispatch<SetStateAction<File[]>>;
   links: string[];
   setLinks: Dispatch<SetStateAction<string[]>>;
-  setText: Dispatch<SetStateAction<string>>;
   currentFiles: string[];
   removedFiles: string[];
   setRemovedFiles: Dispatch<SetStateAction<string[]>>;
 };
 
-export const DataInput = ({ files, setFiles, links, setLinks, currentFiles, removedFiles, setRemovedFiles, setText }: TDataInput) => {
+export const DataInput = ({ files, setFiles, links, setLinks, currentFiles, removedFiles, setRemovedFiles }: TDataInput) => {
   const inputFile = useRef<HTMLInputElement>(null);
   const [invalidLinks, setInvalidLinks] = useState<string[]>([]);
   const [invalidFile, setInvalidFile] = useState("");
@@ -164,8 +147,8 @@ export const DataInput = ({ files, setFiles, links, setLinks, currentFiles, remo
     e.preventDefault();
     const droppedFiles = Array.from(e.dataTransfer.files);
     const validFiles = droppedFiles.filter((f) => {
-      if (f.type !== "application/pdf" && f.type !== "text/plain" && f.name.endsWith(".txt")) {
-        setInvalidFile(`${f.name} is not supported. Please upload PDFs only.`);
+      if (!isFileSupported(f.name)) {
+        setInvalidFile(`${f.name} is not supported. Please upload PDFs, Excel, Markdown, CSV or json only.`);
         return false;
       }
       if (currentFiles.includes(f.name)) {
@@ -181,8 +164,8 @@ export const DataInput = ({ files, setFiles, links, setLinks, currentFiles, remo
     e.preventDefault();
     const selectedFiles = Array.from(e.target.files || []);
     const validFiles = selectedFiles.filter((f) => {
-      if (f.type !== "application/pdf" && f.type !== "text/plain" && f.name.endsWith(".txt")) {
-        setInvalidFile(`${f.name} is not supported. Please upload PDFs or .txt only.`);
+      if (!isFileSupported(f.name)) {
+        setInvalidFile(`${f.name} is not supported. Please upload PDFs, Excel, Markdown, CSV or json only.`);
         return false;
       }
       if (currentFiles.includes(f.name)) {
@@ -223,19 +206,19 @@ export const DataInput = ({ files, setFiles, links, setLinks, currentFiles, remo
     validateLinks(newLinks);
   };
 
+  const isFileSupported = (fileName: string) => {
+    return SUPPORTEDFILES.some(f => fileName.endsWith(f))
+  }
+
   const env = process.env.NEXT_PUBLIC_APP_ENV;
 
   return (
     <div className="flex-1 flex flex-col h-full">
       <Tabs defaultValue="file" className="w-full h-full flex flex-col">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="file" className="gap-2">
             <UploadCloud className="h-5 w-5" />
             Files
-          </TabsTrigger>
-          <TabsTrigger data-test={"btn-texts"} value="texts" className="gap-2">
-            <Link className="h-5 w-5" />
-            Texts
           </TabsTrigger>
           <TabsTrigger value="link" className="gap-2">
             <Link className="h-5 w-5" />
@@ -246,7 +229,7 @@ export const DataInput = ({ files, setFiles, links, setLinks, currentFiles, remo
           <Card className="flex flex-col">
             <CardHeader>
               <CardTitle>Upload your Files</CardTitle>
-              <CardDescription>Only PDF,txt files are supported.</CardDescription>
+              <CardDescription>Only PDF,CSV, Excel, JSON, Markdown files are supported.</CardDescription>
               {invalidFile && (
                 <div className="mt-2 text-red-600 text-sm">
                   <AlertCircle className="h-4 w-4 inline-block mr-1" />
@@ -261,7 +244,7 @@ export const DataInput = ({ files, setFiles, links, setLinks, currentFiles, remo
                 className="border-2 border-dashed border-gray-300 rounded-xl p-5 text-center hover:border-teal-500 transition-colors flex flex-col justify-center"
               >
                 <UploadCloud className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-600 mb-2">Drag & drop PDF, txt files here</p>
+                <p className="text-gray-600 mb-2">Drag & drop PDF, Excel, CSV, JSON, Markdown files</p>
                 <p className="text-sm text-gray-500 mb-4">or</p>
                 <input
                   type="file"
@@ -273,7 +256,7 @@ export const DataInput = ({ files, setFiles, links, setLinks, currentFiles, remo
                   id="file-upload"
                 />
                 <Label htmlFor="file-upload" asChild>
-                  <Button size="lg" type="button" onClick={() => inputFile.current?.click()}>
+                  <Button size="lg" type="button" variant='secondary' onClick={() => inputFile.current?.click()}>
                     Browse Files
                   </Button>
                 </Label>
@@ -301,8 +284,8 @@ export const DataInput = ({ files, setFiles, links, setLinks, currentFiles, remo
         <TabsContent value="link" className="flex-1">
           <Card className="flex flex-col">
             <CardHeader>
-              <CardTitle>Provide PDF, txt URLs</CardTitle>
-              <CardDescription>Enter valid HTTP/HTTPS links to PDF, txt files.</CardDescription>
+              <CardTitle>Provide PDF, CSV, JSON, Excel, Markdown  URLs</CardTitle>
+              <CardDescription>Enter valid HTTP/HTTPS links to PDF, CSV, JSON, Excel, Markdown files.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -326,25 +309,6 @@ export const DataInput = ({ files, setFiles, links, setLinks, currentFiles, remo
                     </ul>
                   </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="texts" className="flex-1">
-          <Card className="flex flex-col">
-            <CardHeader>
-              <CardTitle>Provide Direcct Text</CardTitle>
-              <CardDescription>Enter Text</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Textarea
-                  onChange={(e) => setText(e.target.value)}
-                  name="text"
-                  placeholder="Enter direct text"
-                  className={`w-full h-60 resize-none`}
-                />
               </div>
             </CardContent>
           </Card>

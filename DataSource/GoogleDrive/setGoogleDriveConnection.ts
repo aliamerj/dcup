@@ -1,7 +1,7 @@
 import { databaseDrizzle } from "@/db";
-import { connections } from "@/db/schemas/connections";
 import { eq } from "drizzle-orm";
 import { connectionConfig } from "../utils";
+import { connections } from "@/db/schema";
 
 export const setGoogleDriveConnection = async (formData: FormData) => {
   const config = connectionConfig.safeParse({
@@ -15,13 +15,7 @@ export const setGoogleDriveConnection = async (formData: FormData) => {
   })
 
   if (!config.success) {
-    const errors = config.error.errors
-      .map(err => {
-        const fieldPath = err.path.length > 0 ? err.path.join('.') : 'value'
-        return `"${fieldPath}": ${err.message}`
-      })
-      .join('; ')
-    throw new Error(`Validation errors - ${errors}`)
+    throw new Error(`Validation errors - ${config.error.message}`)
   }
 
   await databaseDrizzle.update(connections).set({

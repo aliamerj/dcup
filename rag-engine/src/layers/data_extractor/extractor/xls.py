@@ -4,10 +4,11 @@ import uuid
 from openpyxl import load_workbook
 import xlrd
 
+from src.infra.redis_client import update_progress
 from src.layers.data_extractor.models import Line, Page, TablePage
 
 
-def extract_data_excel(excel_bytes: bytes) -> tuple[list[Page], dict]:
+def extract_data_excel(excel_bytes: bytes, job_id: str) -> tuple[list[Page], dict]:
     """
     Extract XLS / XLSX while preserving strict stream order:
     workbook → sheets → rows → cells
@@ -31,6 +32,13 @@ def extract_data_excel(excel_bytes: bytes) -> tuple[list[Page], dict]:
 
         for sheet in wb.worksheets:  # 🔒 sheet order preserved
             page = _extract_xlsx_sheet(sheet, page_number)
+            update_progress(
+                job_id=job_id,
+                status="running",
+                stage="extracting",
+                current=page_number,
+                total=page_number,
+            )
             pages.append(page)
             page_number += 1
 

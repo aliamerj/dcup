@@ -1,5 +1,4 @@
 import { databaseDrizzle } from '@/db';
-import { connections } from '@/db/schemas/connections';
 import { eq } from 'drizzle-orm';
 import { Dropbox, DropboxAuth, files } from 'dropbox';
 import { z } from 'zod'
@@ -7,6 +6,7 @@ import { FileContent, PageContent } from '..';
 import { processPdfBuffer } from '../Files/pdf';
 import { publishProgress } from '@/events';
 import { processDirectText } from '../Files/text';
+import { connections } from '@/db/schema';
 
 const dropboxCredentials = z.object({
   accessToken: z.string().min(5),
@@ -32,13 +32,7 @@ export const getDropboxAuthorization = async (credentials: unknown, connectionId
   const { success, error, data: storedTokens } = dropboxCredentials.safeParse(credentials);
 
   if (!success) {
-    const errors = error.errors
-      .map(err => {
-        const fieldPath = err.path.length > 0 ? err.path.join('.') : 'value'
-        return `"${fieldPath}": ${err.message}`
-      })
-      .join('; ')
-    throw new Error(`Validation errors - ${errors}`)
+    throw new Error(`Validation errors - ${error.message}`)
   }
 
   const { accessToken, refreshToken } = await refreshAccessToken(

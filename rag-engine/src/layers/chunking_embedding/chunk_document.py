@@ -1,6 +1,7 @@
 from typing import List
 import uuid
 import tiktoken
+from src.infra.redis_client import update_progress
 from src.layers.chunking_embedding.models import Chunk
 from src.layers.data_extractor.models import ImagePage, TablePage
 from src.layers.structure_analyzer.models import Paragraph, Section, StructuredDocument
@@ -22,6 +23,7 @@ def count_tokens(text: str) -> int:
 def chunk_document(
     structured_document: StructuredDocument,
     metadata: dict,
+    job_id: str,
     max_tokens: int = 450,
     min_tokens: int = 80,
 ) -> List[Chunk]:
@@ -42,6 +44,13 @@ def chunk_document(
                     metadata=metadata,
                 )
             )
+            update_progress(
+                job_id=job_id,
+                status="running",
+                stage="chunking",
+                current=len(chunks),
+                total=len(chunks),
+            )
 
     # ---- SECTIONS ----
     for section in structured_document.sections:
@@ -54,10 +63,25 @@ def chunk_document(
                 metadata=metadata,
             )
         )
+        update_progress(
+            job_id=job_id,
+            status="running",
+            stage="chunking",
+            current=len(chunks),
+            total=len(chunks),
+        )
 
     # ---- FINAL CLEANUP ----
     chunks = _merge_small_chunks(chunks, min_tokens, max_tokens)
     chunks = _deduplicate_chunks_atttach_index(chunks)
+
+    update_progress(
+        job_id=job_id,
+        status="running",
+        stage="chunking",
+        current=len(chunks),
+        total=len(chunks),
+    )
 
     return chunks
 

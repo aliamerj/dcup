@@ -5,6 +5,9 @@ from fastapi import HTTPException, status
 from qdrant_client.models import Optional
 from openpyxl import load_workbook
 
+from src.infra.redis_client import init_progress, processing_queue
+from src.store.model import StoreResponse
+
 
 def parse_metadata(metadata_str: Optional[str]) -> dict:
     """Parse JSON metadata string, return empty dict if None."""
@@ -68,3 +71,28 @@ def assert_sheet(data: bytes):
         load_workbook(io.BytesIO(data), read_only=True)
     except Exception:
         raise HTTPException(400, "Corrupted XLSX file")
+
+
+def create_process_job(
+    data_bytes: bytes, meta: dict, user_id: str, filename: str
+) -> StoreResponse:
+    job = processing_queue.enqueue(
+        "src.layers.process.process_job",
+        file_bytes=data_bytes,
+        metadata=meta,
+        job_timeout=60 * 60 * 2,
+    )
+    init_progress(
+        job_id=job.get_id(),
+        user_id=user_id,
+        file_name=filename,
+        file_type=meta["_file_type"],
+    )
+
+    return StoreResponse(
+        file_name=filename,
+        file_type=meta["_file_type"],
+        job_id=job.get_id(),
+        stage="queued",
+        status="queued",
+    )

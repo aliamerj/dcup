@@ -184,10 +184,6 @@ const processFiles = async (userId: string, filesContent: FileContent[], service
           shouldCancel = true;
           break;
         }
-        if (process.env.NEXT_PUBLIC_APP_ENV === 'TEST') {
-          const delay = (ms: number) => new Promise(res => setTimeout(res, ms))
-          await delay(1000)
-        }
 
         const page = file.pages[pageIndex]
         if (limits <= 0 || shouldCancel) break;

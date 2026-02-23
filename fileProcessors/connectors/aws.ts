@@ -117,6 +117,6 @@ async function streamToBuffer(stream: Readable): Promise<Buffer> {
 }
 
 async function streamToBlob(stream: Readable): Promise<Blob> {
-  const buffer = await streamToBuffer(stream);  // Convert stream to buffer
-  return new Blob([buffer]);  // Convert buffer to Blob
+  const buffer = await streamToBuffer(stream);
+  return new Blob([buffer as BlobPart]);
 }

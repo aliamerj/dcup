@@ -4,6 +4,7 @@ from typing import List
 import uuid
 import pdfplumber
 
+from src.infra.redis_client import update_progress
 from src.layers.data_extractor.models import ImagePage, Line, Page, TablePage, Word
 
 
@@ -17,16 +18,24 @@ TABLE_PADDING = 1.5  # small padding around table bbox to catch overlaps
 # ===============================
 # PUBLIC ENTRY
 # ===============================
-def extract_data_pdf(pdf_bytes: bytes) -> tuple[list[Page], dict]:
+def extract_data_pdf(pdf_bytes: bytes, job_id: str) -> tuple[list[Page], dict]:
     pages_output: list[Page] = []
     metadata = {}
 
     try:
-        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf_doc: 
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf_doc:
             metadata["_page_count"] = len(pdf_doc.pages)
             metadata["_file_metadata"] = pdf_doc.metadata
 
             for page_number, page in enumerate(pdf_doc.pages, start=1):
+                update_progress(
+                    job_id=job_id,
+                    status="running",
+                    stage="extracting",
+                    current=page_number,
+                    total=len(pdf_doc.pages),
+                )
+
                 tables_output = _extract_tables(page, page_number)
                 words = _extract_words(page)
                 words = _filter_table_words(words, tables_output)

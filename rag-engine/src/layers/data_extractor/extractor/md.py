@@ -1,5 +1,6 @@
 import re
 import uuid
+from src.infra.redis_client import update_progress
 from src.layers.data_extractor.models import ImagePage, Line, Page, TablePage
 import yaml
 
@@ -11,7 +12,7 @@ CODE_BLOCK_RE = re.compile(
 )
 
 
-def extract_data_md(file_bytes: bytes) -> tuple[list[Page], dict]:
+def extract_data_md(file_bytes: bytes, job_id: str) -> tuple[list[Page], dict]:
     md_text = file_bytes.decode("utf-8", errors="ignore")
     metadata: dict[str, object] = {
         "_page_count": 1,
@@ -32,6 +33,14 @@ def extract_data_md(file_bytes: bytes) -> tuple[list[Page], dict]:
         images=images,
         width=None,
         height=None,
+    )
+
+    update_progress(
+        job_id=job_id,
+        status="running",
+        stage="extracting",
+        current=1,
+        total=1,
     )
 
     return [page], metadata

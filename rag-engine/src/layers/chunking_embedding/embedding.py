@@ -2,14 +2,23 @@ from concurrent.futures import ThreadPoolExecutor
 import os
 from typing import List
 from qdrant_client.models import models
+from src.infra.redis_client import update_progress
 from src.layers.chunking_embedding.models import Chunk
-from src.common.utils import dense_embedding, sparse_embedding
+from src.infra.text_model import dense_embedding, sparse_embedding
 
 
 _executor = ThreadPoolExecutor(max_workers=os.cpu_count() or 4)
 
 
-def embed_chunks(chunks: List[Chunk], batch_size: int = 64) -> List[Chunk]:
+def embed_chunks(chunks: List[Chunk], job_id: str, batch_size: int = 64) -> List[Chunk]:
+    update_progress(
+        job_id=job_id,
+        status="running",
+        stage="embedding",
+        current=0,
+        total=len(chunks),
+    )
+
     for i in range(0, len(chunks), batch_size):
         batch = chunks[i : i + batch_size]
 
@@ -40,11 +49,20 @@ page: {c.page_start} - {c.page_end}
         dense_vectors = future_dense.result()
         sparse_vectors = future_sparse.result()
 
-        for chunk, dv, sv in zip(batch, dense_vectors, sparse_vectors):
+        for chunk_number, (chunk, dv, sv) in enumerate(
+            zip(batch, dense_vectors, sparse_vectors), start=1
+        ):
             chunk.dense_vectors = dv.tolist()
             chunk.sparse_vectors = models.SparseVector(
                 indices=sv.indices.tolist(),
                 values=sv.values.tolist(),
+            )
+            update_progress(
+                job_id=job_id,
+                status="running",
+                stage="embedding",
+                current=chunk_number + i,
+                total=len(chunks),
             )
 
     return chunks

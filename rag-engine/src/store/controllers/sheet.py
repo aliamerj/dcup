@@ -4,10 +4,9 @@ from typing import Optional
 from urllib.parse import urlparse
 from fastapi import File, Form, HTTPException, UploadFile, status
 import requests
-from src.common.utils import document_exists, parse_metadata
-from src.layers.data_extractor.extractor.xls import extract_data_excel
-from src.store import service
-from src.store.controllers.utils import assert_sheet
+from src.common.utils import parse_metadata
+from src.infra.qdrant_client import document_exists
+from src.store.controllers.utils import assert_sheet, create_process_job
 
 
 async def upload(
@@ -15,7 +14,8 @@ async def upload(
     metadata: Optional[str] = Form(..., description="Metadata for chunks (JSON)"),
 ):
     meta = parse_metadata(metadata)
-    meta["_source_file"] = upload.filename
+    filename = upload.filename or "unknown.xls"
+    meta["_source_file"] = filename
 
     data_bytes = await upload.read()
 
@@ -37,7 +37,7 @@ async def upload(
             detail="Document already uploaded",
         )
 
-    return service.handle(data_bytes, meta, extract_data_excel)
+    return create_process_job(data_bytes, meta, user_id, filename)
 
 
 def with_url(
@@ -86,4 +86,4 @@ def with_url(
             detail="Document already uploaded",
         )
 
-    return service.handle(data_bytes, meta, extract_data_excel)
+    return create_process_job(data_bytes, meta, user_id, filename)

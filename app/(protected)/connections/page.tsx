@@ -3,9 +3,7 @@ import dynamic from 'next/dynamic'
 import { Button } from "@/components/ui/button";
 import { databaseDrizzle } from "@/db";
 import { redirect } from 'next/navigation';
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getConnectionToken } from "@/fileProcessors/connectors";
-import { FiDatabase } from "react-icons/fi";
 import { SetNewConfigDirect } from "@/DataSource/DirectUpload/SetNewConfigDirect/SetNewConfigDirect";
 import { tryAndCatch } from "@/lib/try-catch";
 import { ConnectionTable } from "@/db/schema";
@@ -27,7 +25,6 @@ export default async function ConnectionsPage() {
     headers: await headers(),
   })
   if (!session?.user.id) return redirect("/login")
-
   const connections: ConnectionQuery[] = await databaseDrizzle.query.connections.findMany({
     where: (c, ops) => ops.eq(c.userId, session.user.id!),
     with: {
@@ -40,11 +37,17 @@ export default async function ConnectionsPage() {
     }
   })
 
+  const tokens: ConnectionToken = new Map()
+  for (const conn of connections) {
+    const { data } = await tryAndCatch(getConnectionToken(conn))
+    tokens.set(conn.id, data || null)
+  }
+
   return (
     <div className="container mx-auto p-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-linear-to-r from-primary to-blue-600 bg-clip-text text-transparent">
             Connected Services
           </h1>
           <p className="text-muted-foreground text-lg mt-2">
@@ -60,53 +63,7 @@ export default async function ConnectionsPage() {
           </Button>
         </div>
       </div>
-      {connections.length === 0 ? (<EmptyState />)
-        : (<CurrentConnections connections={connections} />)}
-    </div>
-  );
-}
-
-async function CurrentConnections({ connections }: { connections: ConnectionQuery[] }) {
-  const tokens: ConnectionToken = new Map()
-  for (const conn of connections) {
-    const { data } = await tryAndCatch(getConnectionToken(conn))
-    tokens.set(conn.id, data || null)
-  }
-
-  return (
-    <div className="mb-12">
-      <h2 className="text-2xl font-semibold mb-6">Active Connections</h2>
-      <div className="rounded-lg border overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[200px]">Source</TableHead>
-              <TableHead>Directory</TableHead>
-              <TableHead>Documents</TableHead>
-              <TableHead>Pages</TableHead>
-              <TableHead>Date Added</TableHead>
-              <TableHead>Last Synced</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <Connections connections={connections} tokens={tokens} />
-          </TableBody>
-        </Table>
-      </div>
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center h-full w-full text-center p-6">
-      <div className="bg-muted p-4 rounded-full mb-4">
-        <FiDatabase className="h-12 w-12 text-muted-foreground" />
-      </div>
-      <h2 className="text-2xl font-semibold">No Connected Sources</h2>
-      <p className="text-muted-foreground max-w-md">
-        Connect your first data source to start syncing documents and pages with your application. We support Google Drive, Notion, AWS, and more.
-      </p>
+      <Connections connections={connections} tokens={tokens} userId={session.user.id} />
     </div>
   );
 }

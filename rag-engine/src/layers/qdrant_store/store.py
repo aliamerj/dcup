@@ -1,19 +1,23 @@
 from typing import List
 from qdrant_client.conversions.common_types import PointStruct
+from src.infra import qdrant_client
+from src.infra.redis_client import update_progress
+from src.infra.text_model import COLLECTION_NAME, VECTOR_SIZE
 from src.layers.chunking_embedding.models import Chunk
-from src.common.utils import VECTOR_SIZE, qclient, COLLECTION_NAME
 
 
-def store_chunks(chunks: List[Chunk], batch_size: int = 64) -> None:
+def store_chunks(chunks: List[Chunk], job_id: str, batch_size: int = 64) -> None:
+    total = len(chunks)
 
-    for i in range(0, len(chunks), batch_size):
+    for i in range(0, total, batch_size):
         batch = chunks[i : i + batch_size]
         points: List[PointStruct] = []
 
         for chunk in batch:
-            # Correct validation
             if chunk.dense_vectors is None or chunk.sparse_vectors is None:
                 continue
+
+            assert len(chunk.dense_vectors) == VECTOR_SIZE
 
             payload = {
                 "_text": chunk.text,
@@ -38,12 +42,18 @@ def store_chunks(chunks: List[Chunk], batch_size: int = 64) -> None:
                 )
             )
 
-            # Correct validation
-            assert len(chunk.dense_vectors) == VECTOR_SIZE
-
         if points:
-            qclient.upsert(
+            qdrant_client.qclient.upsert(
                 collection_name=COLLECTION_NAME,
                 points=points,
-                wait=False
+                wait=True,
             )
+
+        # progress update ONCE per batch
+        update_progress(
+            job_id=job_id,
+            status="running",
+            stage="storing",
+            current=min(i + batch_size, total),
+            total=total,
+        )

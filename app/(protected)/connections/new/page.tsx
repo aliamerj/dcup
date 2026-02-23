@@ -14,7 +14,7 @@ export default async function page() {
   return (<div className="container mx-auto p-5">
     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
       <div>
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+        <h1 className="text-4xl font-bold bg-linear-to-r from-primary to-blue-600 bg-clip-text text-transparent">
           Connected Services
         </h1>
         <p className="text-muted-foreground text-lg mt-2">

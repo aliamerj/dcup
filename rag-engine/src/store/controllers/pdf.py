@@ -3,12 +3,10 @@ import os
 from fastapi import File, Form, HTTPException, UploadFile, status
 from qdrant_client.models import Optional
 import requests
-from src.common.utils import document_exists
 from src.common.utils import parse_metadata
-from src.layers.data_extractor.extractor.pdf import extract_data_pdf
+from src.infra.qdrant_client import document_exists
 from urllib.parse import urlparse
-from src.store import service
-from src.store.controllers.utils import assert_pdf
+from src.store.controllers.utils import assert_pdf, create_process_job
 
 
 async def upload(
@@ -16,7 +14,8 @@ async def upload(
     metadata: Optional[str] = Form(..., description="Metadata for chunks (JSON)"),
 ):
     meta = parse_metadata(metadata)
-    meta["_source_file"] = upload.filename
+    filename = upload.filename or "unkown.pdf"
+    meta["_source_file"] = filename
     meta["_file_type"] = "pdf"
 
     data_bytes = await upload.read()
@@ -35,7 +34,8 @@ async def upload(
             status_code=status.HTTP_409_CONFLICT,
             detail="Document already uploaded",
         )
-    return service.handle(data_bytes, meta, extract_data_pdf)
+
+    return create_process_job(data_bytes, meta, user_id, filename)
 
 
 def with_url(
@@ -69,4 +69,4 @@ def with_url(
             status_code=status.HTTP_409_CONFLICT,
             detail="Document already uploaded",
         )
-    return service.handle(data_bytes, meta, extract_data_pdf)
+    return create_process_job(data_bytes, meta, user_id, filename)

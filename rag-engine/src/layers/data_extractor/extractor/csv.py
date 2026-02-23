@@ -1,10 +1,11 @@
 import csv
 import io
 import uuid
+from src.infra.redis_client import update_progress
 from src.layers.data_extractor.models import Line, Page, TablePage
 
 
-def extract_data_csv(csv_bytes: bytes) -> tuple[list[Page], dict]:
+def extract_data_csv(csv_bytes: bytes, job_id: str) -> tuple[list[Page], dict]:
     metadata: dict[str, object] = {
         "_file_type": "csv",
         "_page_count": 1,
@@ -22,6 +23,14 @@ def extract_data_csv(csv_bytes: bytes) -> tuple[list[Page], dict]:
         images=[],
         width=None,
         height=None,
+    )
+
+    update_progress(
+        job_id=job_id,
+        status="running",
+        stage="extracting",
+        current=1,
+        total=1,
     )
 
     return [page], metadata

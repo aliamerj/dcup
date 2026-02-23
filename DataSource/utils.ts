@@ -26,7 +26,7 @@ export const connectionConfig = z.object({
       if (str) return parseInt(str)
       return null
     } catch (error) {
-      ctx.addIssue({ code: 'invalid_date', message: "invalid page limit" })
+      ctx.addIssue({ code: 'custom', message: "invalid page limit" })
       return z.NEVER
     }
   }),
@@ -35,7 +35,7 @@ export const connectionConfig = z.object({
       if (str) return parseInt(str)
       return null
     } catch (error) {
-      ctx.addIssue({ code: 'invalid_date', message: "invalid page limit" })
+      ctx.addIssue({ code: 'custom', message: "invalid page limit" })
       return z.NEVER
     }
   }),

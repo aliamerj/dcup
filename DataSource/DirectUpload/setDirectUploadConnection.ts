@@ -1,5 +1,5 @@
 import { databaseDrizzle } from "@/db";
-import { connections, processedFiles } from "@/db/schemas/connections";
+import { connections, processedFiles } from "@/db/schema";
 import { tryAndCatch } from "@/lib/try-catch";
 import { qdrant_collection_name, qdrantClient } from "@/qdrant";
 import { and, eq } from "drizzle-orm";
@@ -26,7 +26,7 @@ const directUploadConfig = z.object({
       if (str) return parseInt(str)
       return null
     } catch (error) {
-      ctx.addIssue({ code: 'invalid_date', message: "invalid page limit" })
+      ctx.addIssue({ code: 'custom', message: "invalid page limit" })
       return z.NEVER
     }
   }),
@@ -35,7 +35,7 @@ const directUploadConfig = z.object({
       if (str) return parseInt(str)
       return null
     } catch (error) {
-      ctx.addIssue({ code: 'invalid_date', message: "invalid page limit" })
+      ctx.addIssue({ code: 'custom', message: "invalid page limit" })
       return z.NEVER
     }
   }),
@@ -61,7 +61,7 @@ const updateDirectUploadConfig = z.object({
       if (str) return parseInt(str)
       return null
     } catch (error) {
-      ctx.addIssue({ code: 'invalid_date', message: "invalid page limit" })
+      ctx.addIssue({ code: 'custom', message: "invalid page limit" })
       return z.NEVER
     }
   }),
@@ -107,13 +107,8 @@ export const updateDirectUploadConnection = async (formData: FormData) => {
   })
 
   if (!config.success) {
-    const errors = config.error.errors
-      .map(err => {
-        const fieldPath = err.path.length > 0 ? err.path.join('.') : 'value'
-        return `"${fieldPath}": ${err.message}`
-      })
-      .join('; ')
-    throw new Error(`Validation errors - ${errors}`)
+
+    throw new Error(`Validation errors - ${config.error.message}`)
   }
 
   const connectionChunksIds: { chunksIds: string[], name: string }[] = [];
@@ -178,13 +173,7 @@ export const setDirectUploadConnection = async (formData: FormData) => {
   })
 
   if (!config.success) {
-    const errors = config.error.errors
-      .map(err => {
-        const fieldPath = err.path.length > 0 ? err.path.join('.') : 'value'
-        return `"${fieldPath}": ${err.message}`
-      })
-      .join('; ')
-    throw new Error(`Validation errors - ${errors}`)
+    throw new Error(`Validation errors - ${config.error.message}`)
   }
 
   const { files, links, userId, identifier, metadata, fileLimit, pageLimit, texts } = config.data;

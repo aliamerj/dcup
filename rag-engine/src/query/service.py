@@ -16,13 +16,13 @@ from qdrant_client.models import (
     Condition,
 )
 
-from src.common.utils import (
+from src.infra.text_model import (
     COLLECTION_NAME,
     dense_embedding,
     sparse_embedding,
     reranker,
-    qclient,
 )
+from src.infra.qdrant_client import qclient
 from src.query.model import Hit
 
 
