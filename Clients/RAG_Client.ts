@@ -41,7 +41,7 @@ class RAGClient {
   store = {
     file: {
       all: (file: File, metadata: any) =>
-        this.uploadFile<StoreResponse>("/store/upload", file, metadata),
+        this.uploadFile<StoreResponse>("/store/upload/all", file, metadata),
       pdf: (file: File, metadata?: any) =>
         this.uploadFile<StoreResponse>("/store/upload/pdf", file, metadata),
 

@@ -1,10 +1,11 @@
+import logging
 import os
 from urllib.parse import urlparse
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 import httpx
 from qdrant_client.models import Optional
 from src.store.model import StoreResponse
-from src.store.controllers import pdf, md, csv, json, sheet
+from src.store.controllers import pdf, md, csv, json as json_controller, sheet
 
 store_upload_router = APIRouter(prefix="/store/upload", tags=["Store_Upload"])
 store_url_router = APIRouter(prefix="/store/url", tags=["Store_URL"])
@@ -13,7 +14,7 @@ FILE_HANDLERS = {
     "pdf": pdf,
     "md": md,
     "csv": csv,
-    "json": json,
+    "json": json_controller,
     "sheet": sheet,
 }
 
@@ -28,7 +29,7 @@ async def store_upload(
     metadata: Optional[str] = Form(..., description="Metadata for chunks (JSON)"),
 ):
     file_type = detect_file_type_from_upload(upload)
-
+    logging.info(file_type)
     if not file_type:
         raise HTTPException(
             status_code=400,
@@ -72,6 +73,7 @@ async def store_pdf_upload(
 ):
     return await pdf.upload(upload, metadata)
 
+
 @store_url_router.post(
     "/pdf",
     summary="Store an uploaded PDF file",
@@ -93,7 +95,7 @@ def store_pdf_with_url(
 )
 async def store_md_upload(
     upload: UploadFile = File(..., description="Markdown or MDX file to upload"),
-    metadata: Optional[str] = Form(None, description="Metadata for chunks (JSON)"),
+    metadata: Optional[str] = Form(..., description="Metadata for chunks (JSON)"),
 ):
     return await md.upload(upload, metadata)
 
@@ -105,7 +107,7 @@ async def store_md_upload(
 )
 def store_md_with_url(
     url: str = Form(..., description="Link to fetch Markdown / MDX"),
-    metadata: Optional[str] = Form(None, description="Metadata for chunks (JSON)"),
+    metadata: Optional[str] = Form(..., description="Metadata for chunks (JSON)"),
 ):
     return md.with_url(url, metadata)
 
@@ -118,7 +120,7 @@ def store_md_with_url(
 )
 async def store_csv_upload(
     upload: UploadFile = File(..., description="CSV file to upload"),
-    metadata: Optional[str] = Form(None, description="Metadata for chunks (JSON)"),
+    metadata: Optional[str] = Form(..., description="Metadata for chunks (JSON)"),
 ):
     return await csv.upload(upload, metadata)
 
@@ -130,7 +132,7 @@ async def store_csv_upload(
 )
 def store_csv_with_url(
     url: str = Form(..., description="Link to fetch CSV"),
-    metadata: Optional[str] = Form(None, description="Metadata for chunks (JSON)"),
+    metadata: Optional[str] = Form(..., description="Metadata for chunks (JSON)"),
 ):
     return csv.with_url(url, metadata)
 
@@ -143,9 +145,9 @@ def store_csv_with_url(
 )
 async def store_json_upload(
     upload: UploadFile = File(..., description="JSON file to upload"),
-    metadata: Optional[str] = Form(None, description="Metadata for chunks (JSON)"),
+    metadata: Optional[str] = Form(..., description="Metadata for chunks (JSON)"),
 ):
-    return await json.upload(upload, metadata)
+    return await json_controller.upload(upload, metadata)
 
 
 @store_url_router.post(
@@ -157,7 +159,7 @@ def store_json_with_url(
     url: str = Form(..., description="Link to fetch JSON"),
     metadata: Optional[str] = Form(None, description="Metadata for chunks (JSON)"),
 ):
-    return json.with_url(url, metadata)
+    return json_controller.with_url(url, metadata)
 
 
 # 5. Sheet
@@ -180,10 +182,9 @@ async def store_sheet_upload(
 )
 def store_sheet_with_url(
     url: str = Form(..., description="Link to fetch Sheet"),
-    metadata: Optional[str] = Form(None, description="Metadata for chunks (JSON)"),
+    metadata: Optional[str] = Form(..., description="Metadata for chunks (JSON)"),
 ):
     return sheet.with_url(url, metadata)
-
 
 
 CONTENT_TYPE_MAP = {
@@ -199,7 +200,7 @@ CONTENT_TYPE_MAP = {
 EXTENSION_MAP = {
     ".pdf": "pdf",
     ".md": "md",
-    ".mdx":"md",
+    ".mdx": "md",
     ".markdown": "md",
     ".csv": "csv",
     ".json": "json",
