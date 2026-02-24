@@ -11,7 +11,7 @@ from qdrant_client.models import (
 )
 
 qclient = QdrantClient(
-    url=os.getenv("QDRANT_DB_URL"),
+    url=os.getenv("QDRANT_DB_URL", "http://localhost:6333"),
     api_key=os.getenv("QDRANT_DB_KEY"),
 )
 

@@ -2,7 +2,6 @@
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { timeAgo } from "@/lib/utils";
 import { useEffect, useState } from "react";
-import { ConnectionQuery, ConnectionToken } from "@/app/(protected)/connections/page";
 import { getServiceIcon } from "@/lib/helepers";
 import { Check, X, Pickaxe, AlertCircle, Table } from "lucide-react";
 import { DataSource } from "@/DataSource";
@@ -22,8 +21,9 @@ import {
 import { useRouter } from "next/navigation";
 import RAG_Client from "@/Clients/RAG_Client";
 import { FiDatabase } from "react-icons/fi";
+import { ProcessedFilesTable } from "@/db/schema";
 
-export default function Connections({ connections, tokens, userId }: { connections: ConnectionQuery[], tokens: ConnectionToken, userId: string }) {
+export default function Connections({ files, userId }: {files:ProcessedFilesTable[] ,userId: string }) {
   const [isMounted, setIsMounted] = useState(false)
   const route = useRouter()
   const [connProgress, setConnProgress] = useState<ConnectionProgress | null>(null);

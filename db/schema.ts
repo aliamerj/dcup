@@ -7,7 +7,6 @@ import {
   pgEnum,
   index,
   unique,
-  jsonb
 } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm/relations";
 
@@ -90,42 +89,20 @@ export const verification = pgTable(
 );
 
 
-export const connectionEnum = pgEnum('connectors', [
-  'GOOGLE_DRIVE',
-  'DIRECT_UPLOAD',
-  'DROPBOX',
-  'AWS'
-]);
-
-export const connections = pgTable("connection", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  userId: text("user_id")
-    .references(() => users.id, { onDelete: "cascade" })
-    .notNull(),
-  service: connectionEnum("service").notNull(),
-  identifier: text("identifier").unique().notNull(),
-  credentials: jsonb("credentials"),
-  connectionMetadata: jsonb("connection_metadata"),
-  folderName: text("folder_name").default("*"),
-  metadata: text("metadata"),
-  limitPages: integer("limit_pages"),
-  limitFiles: integer("limit_files"),
-  lastSynced: timestamp("last_synced", { withTimezone: true }),
-  jobId: text("job_id"),
-  isConfigSet: boolean("is_config_set").default(false).notNull(),
-  createdAt: timestamp("createdAt", { withTimezone: true }).notNull().defaultNow(),
-})
-
-export const processedFiles = pgTable("pocessed_file", {
+export const files = pgTable("file", {
   name: text("name").notNull(),
-  connectionId: text("connection_id")
+  id: text("id").notNull(), // file_hashed:user_id
+  userId: text("user_id")
     .notNull()
-    .references(() => connections.id, { onDelete: "cascade" }),
+    .references(() => users.id, { onDelete: "cascade" }),
   totalPages: integer("total_pages").default(0).notNull(),
-  chunksIds: text("chunks_ids").array().notNull(),
-}, (t) => [unique().on(t.name, t.connectionId)])
+  chunksCount: integer("chunks_count").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+}, (t) => [unique().on(t.id, t.userId)])
 
 export const apiKeys = pgTable("apiKey", {
   name: text("name").primaryKey(),
@@ -138,25 +115,17 @@ export const apiKeys = pgTable("apiKey", {
 
 
 // ----- Relations ----
-export const connectionRelations = relations(connections, ({ many, one }) => ({
-  files: many(processedFiles),
-  user: one(users, {
-    fields: [connections.userId],
+export const filesRelations = relations(files, ({ one }) => ({
+  file: one(users, {
+    fields: [files.userId],
     references: [users.id]
-  })
-}))
-
-export const processedFilesRelations = relations(processedFiles, ({ one }) => ({
-  connection: one(connections, {
-    fields: [processedFiles.connectionId],
-    references: [connections.id]
   }),
 }))
 
 export const userRelations = relations(users, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
-  connections: many(connections),
+  files: many(files),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -174,5 +143,4 @@ export const accountRelations = relations(account, ({ one }) => ({
 }));
 
 
-export type ProcessedFilesTable = typeof processedFiles.$inferSelect
-export type ConnectionTable = typeof connections.$inferSelect
+export type ProcessedFilesTable = typeof files.$inferSelect

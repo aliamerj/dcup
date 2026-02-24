@@ -1,7 +1,11 @@
-fastapi
+fastapi[standard]
 python-dotenv
 pydantic
 pdfplumber
 requests
 tiktoken
 fastembed
+qdrant_client
+redis
+rq
+openpyxl

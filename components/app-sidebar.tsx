@@ -2,8 +2,8 @@ import {
   BookOpen,
   LifeBuoy,
   Home,
-  Plug,
   Key,
+  Files
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -35,9 +35,9 @@ const data = {
 
     },
     {
-      title: "Connections",
-      url: "/connections",
-      icon: Plug,
+      title: "Documents",
+      url: "/documents",
+      icon: Files,
 
     },
     {

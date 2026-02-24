@@ -2,10 +2,11 @@
    Response Types
 ======================= */
 interface StoreResponse {
-  document_id: string
-  file_type: string
-  page_count: number
-  chunks: string[]
+  file_name: string,
+  file_type: string,
+  job_id: string,
+  stage: string,
+  status: string,
 }
 
 interface QueryResponse {
@@ -39,6 +40,8 @@ class RAGClient {
 
   store = {
     file: {
+      all: (file: File, metadata: any) =>
+        this.uploadFile<StoreResponse>("/store/upload", file, metadata),
       pdf: (file: File, metadata?: any) =>
         this.uploadFile<StoreResponse>("/store/upload/pdf", file, metadata),
 
@@ -56,6 +59,8 @@ class RAGClient {
     },
 
     url: {
+      all: (url: string, metadata?: any) =>
+        this.uploadUrl<StoreResponse>("/store/url/all", url, metadata),
       pdf: (url: string, metadata?: any) =>
         this.uploadUrl<StoreResponse>("/store/url/pdf", url, metadata),
 

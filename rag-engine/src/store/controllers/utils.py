@@ -83,7 +83,7 @@ def create_process_job(
         job_timeout=60 * 60 * 2,
     )
     init_progress(
-        job_id=job.get_id(),
+        job_id=job.id,
         user_id=user_id,
         file_name=filename,
         file_type=meta["_file_type"],
@@ -92,7 +92,7 @@ def create_process_job(
     return StoreResponse(
         file_name=filename,
         file_type=meta["_file_type"],
-        job_id=job.get_id(),
+        job_id=job.id,
         stage="queued",
         status="queued",
     )

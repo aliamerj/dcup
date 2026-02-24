@@ -1,18 +1,14 @@
-import Link from "next/link"
-import dynamic from 'next/dynamic'
-import { Button } from "@/components/ui/button";
 import { databaseDrizzle } from "@/db";
 import { redirect } from 'next/navigation';
-import { getConnectionToken } from "@/fileProcessors/connectors";
-import { SetNewConfigDirect } from "@/DataSource/DirectUpload/SetNewConfigDirect/SetNewConfigDirect";
-import { tryAndCatch } from "@/lib/try-catch";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { UploadFilesDialog } from "@/components/UploadFiles/UploadFies";
+import { FileTable } from "@/components/FileTable/FileTable";
 
 
 export type ConnectionToken = Map<string, string | null>;
 
-export default async function ConnectionsPage() {
+export default async function DocumentsPage() {
   const session = await auth.api.getSession({
     headers: await headers(),
   })
@@ -29,12 +25,6 @@ export default async function ConnectionsPage() {
     }
   })
 
-  const tokens: ConnectionToken = new Map()
-  for (const conn of connections) {
-    const { data } = await tryAndCatch(getConnectionToken(conn))
-    tokens.set(conn.id, data || null)
-  }
-
   return (
     <div className="container mx-auto p-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
@@ -47,15 +37,10 @@ export default async function ConnectionsPage() {
           </p>
         </div>
         <div className="flex gap-3 items-center">
-          <SetNewConfigDirect />
-          <Button asChild>
-            <Link href={"/connections/new"}>
-              New Connection
-            </Link>
-          </Button>
+          <UploadFilesDialog />
         </div>
       </div>
-      <Connections connections={connections} tokens={tokens} userId={session.user.id} />
+      <FileTable userId={session.user.id} />
     </div>
   );
 }

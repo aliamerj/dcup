@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 
-export const SetNewConfigDirect = () => {
+export const UploadFilesDialog = () => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -18,11 +18,13 @@ export const SetNewConfigDirect = () => {
       <DialogTrigger asChild>
         <Button data-test={"btn-upload-files"}>Upload Files</Button>
       </DialogTrigger>
-      <DialogContent className="min-w-5xl">
+      <DialogContent className="sm:max-w-106.25">
         <DialogHeader>
           <DialogTitle>Upload Files Directly</DialogTitle>
         </DialogHeader>
-        <UploadFileForm setOpen={setOpen} />
+        <div className="max-h-screen overflow-y-auto">
+          <UploadFileForm setOpen={setOpen} />
+        </div>
       </DialogContent>
     </Dialog>
   );

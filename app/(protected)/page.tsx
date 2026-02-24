@@ -16,11 +16,7 @@ import {
 import { SubscriptionCard } from "@/components/SubscriptionCard/SubscriptionCard";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { ConnectionTable, ProcessedFilesTable } from "@/db/schema";
-
-interface FileConnectionQuery extends ConnectionTable {
-  files: ProcessedFilesTable[]
-}
+import { ProcessedFilesTable } from "@/db/schema";
 
 export default async function page() {
   const session = await auth.api.getSession({
@@ -36,18 +32,13 @@ export default async function page() {
       plan: true,
     },
     with: {
-      connections: {
-        with: {
-          files: true,
-        }
-      }
+      files: true
     }
   })
 
   if (!user) return redirect("/api/auth/signout")
 
-  const totalPages = user.connections
-    .flatMap(conn => conn.files || [])
+  const totalPages = user.files
     .reduce((sum, file) => sum + (file.totalPages || 0), 0);
 
   return (<div className="w-full flex flex-col p-4">
@@ -56,39 +47,37 @@ export default async function page() {
     </h1>
 
     {/* Visualization Section */}
-    <PipelineFlow connections={user.connections} />
+  {/*   <PipelineFlow connections={user.connections} /> */}
 
     {/* Data Section */}
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
       {/* Files Table */}
       <div className="w-full xl:w-auto">
         <div className="rounded-lg border shadow-sm h-full">
-          <FilesTable connections={user.connections} />
+       *  <FilesTable files={user.files} />
         </div>
       </div>
 
       {/* API Usage */}
       <div className="w-full xl:w-auto">
-        <SubscriptionCard
-          userId={session.user.id!}
-          plan={user.plan}
-          usage={{
-            connections: user.connections.length,
-            pages: totalPages,
-            retrievals: user.apiCalls,
-          }}
-        />
+        {/* <SubscriptionCard */}
+        {/*   userId={session.user.id!} */}
+        {/*   plan={user.plan} */}
+        {/*   usage={{ */}
+        {/*     connections: user.connections.length, */}
+        {/*     pages: totalPages, */}
+        {/*     retrievals: user.apiCalls, */}
+        {/*   }} */}
+        {/* /> */}
       </div>
     </div>
   </div>
   )
 }
 
-function FilesTable({ connections }: { connections: FileConnectionQuery[] }) {
-  const allFiles = connections.flatMap(conn =>
-    conn.files.map(file => ({ ...file, connection: conn })))
+function FilesTable({ files }: { files: ProcessedFilesTable[] }) {   
 
-  if (allFiles.length === 0) return (
+  if (files.length === 0) return (
     <div className="flex items-center justify-center h-full">
       <div className="py-12 text-center text-gray-500 dark:text-gray-400">
         <div className="mb-4 text-2xl">📁</div>
@@ -111,7 +100,7 @@ function FilesTable({ connections }: { connections: FileConnectionQuery[] }) {
         </TableHeader>
 
         <TableBody>
-          {allFiles.map((file) => (
+          {files.map((file) => (
             <TableRow
               key={file.name}
               className="transition-colors hover:bg-gray-50/30 dark:hover:bg-gray-800/20"
@@ -130,14 +119,14 @@ function FilesTable({ connections }: { connections: FileConnectionQuery[] }) {
               <TableCell className="pl-6 py-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                    {getServiceIcon(file.connection.service)}
+                 {/*    {getServiceIcon(file.connection.service)} */}
                   </div>
                   <div className="flex flex-col min-w-0">
                     <span className="text-sm font-medium capitalize truncate">
-                      {file.connection.service.toLowerCase().replace('_', ' ')}
+                   {/*    {file.connection.service.toLowerCase().replace('_', ' ')} */}
                     </span>
                     <span className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {file.connection.identifier}
+                    {/*   {file.connection.identifier} */}
                     </span>
                   </div>
                 </div>
@@ -154,13 +143,13 @@ function FilesTable({ connections }: { connections: FileConnectionQuery[] }) {
 
                   <TooltipTrigger>
                     <span className="text-sm text-gray-500 dark:text-gray-400">
-                      {formatDistanceToNow(new Date(file.connection.lastSynced || ""), {
+                      {formatDistanceToNow(new Date(file.createdAt || ""), {
                         addSuffix: true
                       })}
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {new Date(file.connection.lastSynced || "").toLocaleString()}
+                    {new Date(file.createdAt || "").toLocaleString()}
                   </TooltipContent>
                 </Tooltip>
               </TableCell>

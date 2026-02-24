@@ -5,53 +5,6 @@ import { qdrant_collection_name, qdrantClient } from "@/qdrant";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-const directUploadConfig = z.object({
-  userId: z.string().min(5),
-  identifier: z.string().min(2),
-  metadata: z.string()
-    .transform((str, ctx): string => {
-      try {
-        if (str) {
-          JSON.parse(str)
-          return str
-        }
-        return "{}"
-      } catch (e) {
-        ctx.addIssue({ code: 'custom', message: 'Invalid JSON' })
-        return z.NEVER
-      }
-    }),
-  pageLimit: z.string().nullable().transform((str, ctx): number | null => {
-    try {
-      if (str) return parseInt(str)
-      return null
-    } catch (error) {
-      ctx.addIssue({ code: 'custom', message: "invalid page limit" })
-      return z.NEVER
-    }
-  }),
-  fileLimit: z.string().nullable().transform((str, ctx): number | null => {
-    try {
-      if (str) return parseInt(str)
-      return null
-    } catch (error) {
-      ctx.addIssue({ code: 'custom', message: "invalid page limit" })
-      return z.NEVER
-    }
-  }),
-  files: z.array(z.any().refine((file) => {
-    return (
-      file ||
-      (file instanceof File && file.type === "application/pdf")
-    );
-  },
-    {
-      message: "Invalid File",
-    })
-  ),
-  links: z.array(z.string().min(5)),
-  texts: z.array(z.string().min(5)),
-})
 
 const updateDirectUploadConfig = z.object({
   userId: z.string().min(5),
